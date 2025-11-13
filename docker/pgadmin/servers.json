@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "boilerplate DB",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "boilerplate",
+      "Username": "postgres",
+      "Password": "postgres",
+      "SSLMode": "prefer"
+    }
+  }
+}
