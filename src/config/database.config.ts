@@ -2,6 +2,7 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { registerAs } from '@nestjs/config';
 import 'dotenv/config';
 import { DataSourceOptions } from 'typeorm';
+import { Example } from 'src/entities/create-example';
 
 export const rawConfigGetter = (): TypeOrmModuleOptions &
   DataSourceOptions => ({
@@ -12,7 +13,7 @@ export const rawConfigGetter = (): TypeOrmModuleOptions &
   password: process.env.DB_PASS,
   database: process.env.DB_NAME,
   ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-  entities: [], // using SQL + query runners; add entities later if desired
+  entities: [Example], // using SQL + query runners; add entities later if desired
   synchronize: false,
   logging: false,
 });
