@@ -1,15 +1,15 @@
-import { Controller, Post, Body, Get, Put } from '@nestjs/common';
+import { Controller, Body, Get, Put } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginAuthInputDto } from './dto/auth.input.dto';
-import { LoginAuthOutputDto } from './dto/auth.output.dto';
+import { LoginAuthInput } from './dto/auth.input.dto';
+import { LoginAuthOutput } from './dto/auth.output.dto';
 import {
   ApiBearerAuth,
   ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { MFContext, Public } from 'src/shared/types/types';
-import { User } from 'src/user/entities/user.entity';
+import { AppContext, Public } from '../shared/types/types';
+import { User } from '../entities/user.entity';
 
 @Controller('auth')
 @ApiBearerAuth()
@@ -23,9 +23,9 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'List of users retrieved successfully',
-    type: LoginAuthOutputDto,
+    type: LoginAuthOutput,
   })
-  signIn(@Body() loginDto: LoginAuthInputDto): Promise<LoginAuthOutputDto> {
+  signIn(@Body() loginDto: LoginAuthInput): Promise<LoginAuthOutput> {
     return this.authService.login(loginDto);
   }
 
@@ -36,7 +36,7 @@ export class AuthController {
     description: 'List of users retrieved successfully',
     type: User,
   })
-  getUser(@MFContext('userId') userId: string): Promise<User> {
-    return this.authService.getUser(userId);
+  async getUser(@AppContext('userId') userId: string): Promise<User> {
+    return await this.authService.getUser(userId);
   }
 }

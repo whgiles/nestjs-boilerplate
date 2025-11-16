@@ -1,11 +1,11 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { UserDto } from './common.user.dto';
+import { UserCommon } from './common.user.dto';
 
-export class CreateUserInputDto extends UserDto {}
+export class CreateUserInput extends UserCommon {}
 
-export class UpdateUserInputDto extends PartialType(UserDto) {}
+export class UpdateUserInput extends PartialType(UserCommon) {}
 
-export class LoginUserInputDto {
+export class LoginUserInput {
   @ApiProperty({ example: 'sunnyD123' })
   username: string;
 

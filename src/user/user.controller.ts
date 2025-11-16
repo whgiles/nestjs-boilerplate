@@ -8,7 +8,7 @@ import {
   Delete,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { CreateUserInputDto, UpdateUserInputDto } from './dto/input.user.dto';
+import { CreateUserInput, UpdateUserInput } from './dto/input.user.dto';
 
 import {
   ApiBearerAuth,
@@ -16,7 +16,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { Public } from 'src/shared/types/types';
+import { Public } from '../shared/types/types';
 
 @Controller('user')
 @ApiBearerAuth()
@@ -27,7 +27,7 @@ export class UserController {
   @Public()
   @Post()
   @ApiOperation({ summary: 'Create New User' })
-  async create(@Body() createUserDto: CreateUserInputDto) {
+  async create(@Body() createUserDto: CreateUserInput) {
     return await this.service.create(createUserDto);
   }
 
@@ -43,7 +43,7 @@ export class UserController {
   @ApiExcludeEndpoint()
   async update(
     @Param('id') id: string,
-    @Body() updateUserDto: UpdateUserInputDto,
+    @Body() updateUserDto: UpdateUserInput,
   ) {
     return await this.service.update(id, updateUserDto);
   }

@@ -4,7 +4,7 @@ import { AuthController } from './auth.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from 'src/user/entities/user.entity';
+import { User } from '../entities/user.entity';
 
 @Module({
   controllers: [AuthController],
@@ -15,7 +15,7 @@ import { User } from 'src/user/entities/user.entity';
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
         return {
-          secret: configService.get('AUTH_SECRET'),
+          secret: await configService.get('AUTH_SECRET'),
           global: true,
           signOptions: { expiresIn: '1d' },
         };

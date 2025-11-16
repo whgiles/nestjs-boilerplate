@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class LoginUserOutputDto {
+export class LoginUserOutput {
   @ApiProperty({ example: 'sunnyD123' })
   username: string;
 
@@ -8,7 +8,7 @@ export class LoginUserOutputDto {
   email: string;
 }
 
-export class UserOutputDto {
+export class UserOutput {
   @ApiProperty()
   id: string;
 
@@ -28,10 +28,10 @@ export class UserOutputDto {
   deletedAt: string;
 }
 
-export class CreateUserOutputDto extends UserOutputDto {}
-export class UpdateUserOutputDto extends UserOutputDto {}
-export class FindOneUserOutputDto extends UserOutputDto {}
+export class CreateUserOutput extends UserOutput {}
+export class UpdateUserOutput extends UserOutput {}
+export class FindOneUserOutput extends UserOutput {}
 
-export class FindMultipeUserOutputDto {
-  users: FindOneUserOutputDto[];
+export class FindMultipeUserOutput {
+  users: FindOneUserOutput[];
 }

@@ -19,9 +19,9 @@ export class User {
   @ApiProperty()
   username: string;
 
-  @Column({ length: 100 })
+  @Column({ name: 'password_hash', type: 'text' })
   @Exclude()
-  password: string;
+  passwordHash: string;
 
   @Column({ length: 100, unique: true })
   @ApiProperty()

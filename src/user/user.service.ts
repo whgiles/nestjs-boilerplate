@@ -1,50 +1,62 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { User } from '../entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
-  CreateUserInputDto,
-  LoginUserInputDto,
-  UpdateUserInputDto,
+  CreateUserInput,
+  LoginUserInput,
+  UpdateUserInput,
 } from './dto/input.user.dto';
-import {
-  CreateUserOutputDto,
-  FindOneUserOutputDto,
-  UpdateUserOutputDto,
-} from './dto/output.user.dto';
-import { EntityNotFoundException } from 'src/shared/types/types';
+import { EntityNotFoundException, SafeUser } from '../shared/types/types';
+import { randomBytes, scrypt as scryptCallback } from 'crypto';
+import { promisify } from 'util';
+import { FindOneUserOutput, UpdateUserOutput } from './dto/output.user.dto';
+
+const scrypt = promisify(scryptCallback);
 
 @Injectable()
 export class UserService {
+  private readonly scryptKeyLength = 32;
+
   constructor(
     @InjectRepository(User)
-    private userRepo: Repository<User>,
+    private usersRepository: Repository<User>,
   ) {}
 
-  async create(
-    createUserDto: CreateUserInputDto,
-  ): Promise<CreateUserOutputDto> {
-    const entity = this.userRepo.create({ ...createUserDto });
+  async create(createUserDto: CreateUserInput): Promise<SafeUser> {
+    const username = this.normalizeUsername(createUserDto.username);
+    const password = createUserDto.password?.trim();
 
-    try {
-      await this.userRepo.save(entity);
-    } catch (e) {
-      throw new HttpException(
-        'Could not create user. username or email may already be in use',
-        HttpStatus.BAD_REQUEST,
+    if (!username) {
+      throw new BadRequestException('username is required');
+    }
+
+    if (!password || password.length < 8) {
+      throw new BadRequestException(
+        'password is required and must be at least 8 characters',
       );
     }
 
-    const user = await this.userRepo.findOneBy({
-      username: createUserDto.username,
+    await this.ensureUsernameAvailable(username);
+
+    const passwordHash = await this.hashPassword(password);
+    const user = this.usersRepository.create({
+      username,
+      passwordHash,
+      email: createUserDto.email,
     });
-    delete user.password;
-    return user;
+
+    const saved = await this.usersRepository.save(user);
+    return this.toSafeUser(saved);
   }
 
-  async findOne(id: string): Promise<FindOneUserOutputDto> {
-    const user = await this.userRepo.findOneBy({ id });
+  async findOne(id: string): Promise<FindOneUserOutput> {
+    const user = await this.usersRepository.findOneBy({ id });
     if (!user) {
       throw new EntityNotFoundException(User.name, id);
     }
@@ -54,33 +66,70 @@ export class UserService {
 
   async update(
     id: string,
-    updateUserDto: UpdateUserInputDto,
-  ): Promise<UpdateUserOutputDto> {
-    await this.userRepo.update(id, updateUserDto);
-    const user = await this.userRepo.findOneBy({ id });
+    updateUserDto: UpdateUserInput,
+  ): Promise<UpdateUserOutput> {
+    await this.usersRepository.update(id, updateUserDto);
+    const user = await this.usersRepository.findOneBy({ id });
 
     if (!user) {
       throw new EntityNotFoundException(User.name, id);
     }
 
-    delete user.password;
-    return user;
+    return this.toSafeUser(user);
   }
 
   async delete(id: string): Promise<void> {
-    await this.userRepo.softDelete({ id });
+    await this.usersRepository.softDelete({ id });
   }
 
   async findUserByCredentials(
-    loginDto: LoginUserInputDto,
-  ): Promise<FindOneUserOutputDto> {
+    loginDto: LoginUserInput,
+  ): Promise<FindOneUserOutput> {
     const { username, password } = loginDto;
-    const user = await this.userRepo.findOneBy({ username, password });
+    const user = await this.usersRepository.findOneBy({ username });
 
     if (!user) {
       throw new EntityNotFoundException(User.name, username);
     }
-    delete user.password;
-    return user;
+
+    if ((await this.hashPassword(password)) !== user.passwordHash)
+      throw new UnauthorizedException();
+
+    return this.toSafeUser(user);
+  }
+
+  private normalizeUsername(username?: string): string | null {
+    if (!username) {
+      return null;
+    }
+
+    const trimmed = username.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  private async ensureUsernameAvailable(username: string): Promise<void> {
+    const existing = await this.usersRepository.findOne({
+      where: { username },
+      select: ['id'],
+    });
+
+    if (existing) {
+      throw new ConflictException('username is already taken');
+    }
+  }
+
+  private async hashPassword(password: string): Promise<string> {
+    const salt = randomBytes(16).toString('hex');
+    const derivedKey = (await scrypt(
+      password,
+      salt,
+      this.scryptKeyLength,
+    )) as Buffer;
+    return `${salt}:${derivedKey.toString('hex')}`;
+  }
+
+  private toSafeUser(user: User): SafeUser {
+    const { passwordHash, ...safe } = user;
+    return safe;
   }
 }
