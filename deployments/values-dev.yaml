@@ -1,0 +1,32 @@
+projectId: "<DEV_PROJECT_ID>"
+region: "us-central1"
+service:
+  name: "oc-backend-service"
+  accountEmail: "cloud-run-sa@<DEV_PROJECT_ID>.iam.gserviceaccount.com"
+  allowUnauthenticated: true
+  ingress: "all"
+  timeoutSeconds: 300
+  concurrency: 80
+  minInstances: 0
+  maxInstances: 2
+  cpu: 1
+  memory: "512Mi"
+  vpcAccess:
+    connector: "projects/<DEV_PROJECT_ID>/locations/us-central1/connectors/<CONNECTOR_NAME>"
+    egress: "all-traffic"
+  env:
+    - name: "NODE_ENV"
+      value: "development"
+    - name: "DB_HOST"
+      secret:
+        name: "db-host"
+        version: "latest"
+        projectId: "<DEV_PROJECT_ID>"
+    - name: "DB_PASSWORD"
+      secret:
+        name: "db-password"
+        version: "latest"
+        projectId: "<DEV_PROJECT_ID>"
+image:
+  repository: "us-central1-docker.pkg.dev/<DEV_PROJECT_ID>/backend-docker/oc-backend-service"
+  tag: "latest"

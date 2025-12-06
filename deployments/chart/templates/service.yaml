@@ -1,0 +1,55 @@
+{{- $projectId := required "projectId is required" .Values.projectId -}}
+{{- $region := required "region is required" .Values.region -}}
+apiVersion: run.googleapis.com/v1
+kind: Service
+metadata:
+  name: {{ required "service.name is required" .Values.service.name }}
+  annotations:
+    run.googleapis.com/ingress: {{ required "service.ingress is required" .Values.service.ingress | quote }}
+  labels:
+    app.kubernetes.io/name: {{ include "oc-backend.name" . | default "oc-backend" }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+    cloud.google.com/project-id: {{ $projectId | quote }}
+    cloud.google.com/region: {{ $region | quote }}
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: {{ required "service.minInstances is required" .Values.service.minInstances | quote }}
+        autoscaling.knative.dev/maxScale: {{ required "service.maxInstances is required" .Values.service.maxInstances | quote }}
+        run.googleapis.com/client-name: "helm"
+    spec:
+      serviceAccountName: {{ required "service.accountEmail is required" .Values.service.accountEmail }}
+      containerConcurrency: {{ required "service.concurrency is required" .Values.service.concurrency }}
+      timeoutSeconds: {{ required "service.timeoutSeconds is required" .Values.service.timeoutSeconds }}
+      {{- if .Values.service.vpcAccess }}
+      vpcAccess:
+        connector: {{ required "service.vpcAccess.connector is required" .Values.service.vpcAccess.connector | quote }}
+        egress: {{ required "service.vpcAccess.egress is required" .Values.service.vpcAccess.egress | quote }}
+      {{- end }}
+      containers:
+        - image: {{ printf "%s:%s" (required "image.repository is required" .Values.image.repository) (required "image.tag is required" .Values.image.tag) | quote }}
+          resources:
+            limits:
+              cpu: {{ required "service.cpu is required" .Values.service.cpu | quote }}
+              memory: {{ required "service.memory is required" .Values.service.memory | quote }}
+          env:
+            {{- range $index, $env := .Values.service.env }}
+            - name: {{ required (printf "service.env[%d].name is required" $index) $env.name | quote }}
+              {{- if $env.value }}
+              value: {{ $env.value | quote }}
+              {{- else if $env.secret }}
+              valueFrom:
+                secretKeyRef:
+                  secret: {{ required (printf "service.env[%d].secret.name is required" $index) $env.secret.name | quote }}
+                  version: {{ required (printf "service.env[%d].secret.version is required" $index) $env.secret.version | quote }}
+                  {{- if $env.secret.projectId }}
+                  projectId: {{ $env.secret.projectId | quote }}
+                  {{- end }}
+              {{- else }}
+              value: ""
+              {{- end }}
+            {{- end }}
+  traffic:
+    - percent: 100
+      latestRevision: true

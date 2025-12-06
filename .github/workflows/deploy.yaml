@@ -1,0 +1,91 @@
+name: deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      env_name:
+        description: "Environment name (e.g., dev, stg, prod)"
+        required: true
+        type: string
+      project_id:
+        description: "Target GCP project ID"
+        required: true
+        type: string
+      region:
+        description: "Cloud Run/Artifact Registry region"
+        required: true
+        type: string
+      service_name:
+        description: "Cloud Run service name"
+        required: true
+        type: string
+      artifact_repo:
+        description: "Artifact Registry repository name"
+        required: true
+        type: string
+      image_name:
+        description: "Image name inside Artifact Registry"
+        required: true
+        type: string
+      values_file:
+        description: "Path to Helm values file for this environment"
+        required: true
+        type: string
+      allow_unauthenticated:
+        description: "Grant allUsers Cloud Run Invoker"
+        required: true
+        type: boolean
+      run_tests:
+        description: "Run tests before deploy"
+        required: true
+        type: boolean
+      workload_identity_provider:
+        description: "Workload Identity Provider resource name"
+        required: true
+        type: string
+      service_account_email:
+        description: "Service account email for deploy"
+        required: true
+        type: string
+      audience:
+        description: "OIDC audience (optional)"
+        required: false
+        type: string
+
+jobs:
+  deploy-main:
+    if: github.event_name == 'push'
+    uses: ./.github/workflows/reusable-cloud-run.yaml
+    with:
+      env_name: "dev"
+      project_id: ${{ secrets.DEV_GCP_PROJECT_ID }}
+      region: "us-central1"
+      service_name: "oc-backend-service"
+      artifact_repo: "backend-docker"
+      image_name: "oc-backend-service"
+      values_file: "deployments/values-dev.yaml"
+      allow_unauthenticated: true
+      run_tests: true
+      workload_identity_provider: ${{ secrets.DEV_GCP_WORKLOAD_ID_PROVIDER }}
+      service_account_email: ${{ secrets.DEV_GCP_SERVICE_ACCOUNT_EMAIL }}
+      audience: ${{ secrets.DEV_GCP_AUDIENCE }}
+
+  deploy-manual:
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-cloud-run.yaml
+    with:
+      env_name: ${{ inputs.env_name }}
+      project_id: ${{ inputs.project_id }}
+      region: ${{ inputs.region }}
+      service_name: ${{ inputs.service_name }}
+      artifact_repo: ${{ inputs.artifact_repo }}
+      image_name: ${{ inputs.image_name }}
+      values_file: ${{ inputs.values_file }}
+      allow_unauthenticated: ${{ inputs.allow_unauthenticated }}
+      run_tests: ${{ inputs.run_tests }}
+      workload_identity_provider: ${{ inputs.workload_identity_provider }}
+      service_account_email: ${{ inputs.service_account_email }}
+      audience: ${{ inputs.audience }}
